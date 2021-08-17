@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:path_drawing/path_drawing.dart';
 import 'package:vector_math/vector_math_64.dart';
+import 'package:xml/xml.dart';
 import 'package:xml/xml_events.dart' hide parseEvents;
 
 import '../utilities/errors.dart';
@@ -104,6 +105,7 @@ class _Elements {
       parserState._parentDrawables.addLast(
         _SvgGroupTuple(
           'svg',
+          id,
           DrawableGroup(
             id,
             <Drawable>[],
@@ -718,9 +720,10 @@ class _Paths {
 }
 
 class _SvgGroupTuple {
-  _SvgGroupTuple(this.name, this.drawable);
+  _SvgGroupTuple(this.name, this.id, this.drawable);
 
   final String name;
+  final String? id;
   final DrawableParent? drawable;
 }
 
@@ -743,6 +746,7 @@ class SvgParserState {
   bool _inDefs = false;
   late Map<String, String> _currentAttributes;
   XmlStartElementEvent? _currentStartElement;
+  late Map<String, String> styles = <String, String>{};
 
   /// The current depth of the reader in the XML hierarchy.
   int depth = 0;
@@ -763,6 +767,42 @@ class SvgParserState {
         return;
       }
     }
+  }
+
+  Map<String, String> _parseStyle() {
+    final int subtreeStartDepth = depth;
+    while (_eventIterator.moveNext()) {
+      final XmlEvent event = _eventIterator.current;
+
+      //print(event.toString().substring(1, event.toString().indexOf('{')));
+
+      if (event is XmlStartElementEvent && !event.isSelfClosing) {
+        depth += 1;
+      } else if (event is XmlEndElementEvent) {
+        depth -= 1;
+        assert(depth >= 0);
+      }
+      _currentAttributes = <String, String>{};
+      _currentStartElement = null;
+
+      if (!(event is XmlEndElementEvent)) {
+        try {
+          var trimmed = event.toString().trim();
+          final styleValues = trimmed.split('}');
+          styleValues.forEach((e) {
+            if (e.isEmpty) return;
+            final v = e.trim();
+            styles[v.substring(1, v.indexOf('{'))] =
+                v.substring(v.indexOf('#') + 1, v.indexOf(';', v.indexOf('#')));
+          });
+        } catch (_) {}
+      }
+
+      if (depth < subtreeStartDepth) {
+        return styles;
+      }
+    }
+    return styles;
   }
 
   Iterable<XmlEvent> _readSubtree() sync* {
@@ -808,14 +848,21 @@ class SvgParserState {
 
   /// Drive the [XmlTextReader] to EOF and produce a [DrawableRoot].
   Future<DrawableRoot> parse() async {
+    var styles = <String, String>{};
     for (XmlEvent event in _readSubtree()) {
       if (event is XmlStartElementEvent) {
         if (startElement(event)) {
           continue;
         }
         final _ParseFunc? parseFunc = _svgElementParsers[event.name];
+
         await parseFunc?.call(this, _warningsAsErrors);
         if (parseFunc == null) {
+          // handle style
+          if (event.name == 'style') {
+            styles = _parseStyle();
+            continue;
+          }
           if (!event.isSelfClosing) {
             _discardSubtree();
           }
@@ -867,7 +914,9 @@ class SvgParserState {
 
   /// Appends a group to the collection.
   void addGroup(XmlStartElementEvent event, DrawableParent? drawable) {
-    _parentDrawables.addLast(_SvgGroupTuple(event.name, drawable));
+    final String? id =
+        getAttribute(event.attributes.toAttributeMap(), 'id', def: '');
+    _parentDrawables.addLast(_SvgGroupTuple(event.name, id, drawable));
     checkForIri(drawable);
   }
 
@@ -877,6 +926,14 @@ class SvgParserState {
     if (pathFunc == null) {
       return false;
     }
+
+    final className = getAttribute(attributes, 'class', def: '');
+    Color? color;
+    try {
+      if (styles[className] != null) {
+        color = Color(int.parse(styles[className]!, radix: 16));
+      }
+    } catch (_) {}
 
     final DrawableParent parent = _parentDrawables.last.drawable!;
     final DrawableStyle? parentStyle = parent.style;
@@ -890,7 +947,7 @@ class SvgParserState {
         _definitions,
         path.getBounds(),
         parentStyle,
-        defaultFillColor: colorBlack,
+        defaultFillColor: color ?? colorBlack,
       ),
       transform: parseTransform(getAttribute(attributes, 'transform'))?.storage,
     );
