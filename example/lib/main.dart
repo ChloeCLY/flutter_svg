@@ -29,13 +29,16 @@ class _MyHomePage extends HookWidget {
         title: const Text('test'),
       ),
       body: Container(
-          child: SvgPainter(const Size(400, 400),
+          alignment: Alignment.center,
+          height: 500,
+          child: SvgPainter(Size(MediaQuery.of(context).size.width, 500),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               svgUri:
                   'https://totalticketing-ets-mgm-prod2-singapore-web-files.s3.amazonaws.com/media/seatingtemplate/svg_three_d_drawing/34/mgm_gala_jan_0331_627pm_3d_final_rename100.svg',
               onTap: (String groupId, DrawableShape shape) {
-        print(groupId);
-        print(shape.id);
-      })),
+            print(groupId);
+            print(shape.id);
+          })),
     );
   }
 }

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -14,12 +15,14 @@ class SvgPainter extends HookWidget {
   final String? svgString;
   final String? svgUri;
   final Color? selectedColor;
+  final EdgeInsetsGeometry? padding;
   final void Function(String, DrawableShape)? onTap;
 
   SvgPainter(this.size,
       {this.svgString,
       this.svgUri,
       this.onTap,
+      this.padding,
       this.selectedColor = Colors.red});
 
   @override
@@ -28,14 +31,7 @@ class SvgPainter extends HookWidget {
     final ValueNotifier<List<MyCustomPainter>> painters =
         useState<List<MyCustomPainter>>([]);
     final ValueNotifier<int> selectedIndex = useState<int>(-1);
-
-    final double svgWidth = root.value?.viewport.viewBox.width ?? size.width;
-    final double scaleX = size.width / svgWidth;
-
-    final double svgHeight = root.value?.viewport.viewBox.height ?? size.height;
-    final double scaleY = size.height / svgHeight;
-
-    final double scale = min(scaleX, scaleY);
+    final scale = useState<double>(1);
 
     Future<void> _fetchSvg() async {
       final Uint8List bytes = await httpGet(
@@ -62,6 +58,26 @@ class SvgPainter extends HookWidget {
       if (root.value == null) {
         return;
       }
+      double targetWidth = size.width - (padding?.horizontal ?? 0);
+      double targetHeight = size.height - (padding?.vertical ?? 0);
+      double boundX = targetWidth;
+      double boundY = targetHeight;
+      root.value?.children.forEach((Drawable e) {
+        if (e is DrawableGroup && e.children != null) {
+          e.children!.forEach((Drawable s) {
+            if (s is DrawableShape) {
+              boundX = max(boundX, s.path.getBounds().right);
+              boundY = max(boundY, s.path.getBounds().bottom);
+            }
+          });
+        }
+      });
+
+      final double scaleX = targetWidth / boundX;
+      final double scaleY = targetHeight / boundY;
+
+      scale.value = min(scaleX, scaleY);
+
       painters.value.clear();
       int count = -1;
       root.value!.children.forEach((Drawable e) {
@@ -71,7 +87,7 @@ class SvgPainter extends HookWidget {
             if (s is DrawableShape) {
               final ui.Color color = s.style.fill?.color ?? Colors.black;
               painters.value.add(
-                MyCustomPainter(count, e.id, s, scale, color),
+                MyCustomPainter(count, e.id, s, scale.value, color),
               );
             }
           });
@@ -96,7 +112,7 @@ class SvgPainter extends HookWidget {
             -1,
             currentSelected!.groupId,
             currentSelected.drawable,
-            scale,
+            scale.value,
             selectedColor!,
             isSelected: true,
           )
@@ -107,9 +123,11 @@ class SvgPainter extends HookWidget {
         onTapDown: onTap == null
             ? null
             : (TapDownDetails details) {
+                bool isHit = false;
                 for (int i = 0; i < painters.value.length; i++) {
                   if (painters.value[i].hitTest(details.localPosition) &&
                       painters.value[i].index > 0) {
+                    isHit = true;
                     if (painters.value[i].groupId == 'GRAPHIC') {
                       selectedIndex.value = -1;
                       break;
@@ -121,24 +139,28 @@ class SvgPainter extends HookWidget {
                     }
                     onTap?.call(painters.value[i].groupId ?? '',
                         painters.value[i].drawable);
-
                     break;
                   }
                 }
+                if (!isHit) {
+                  selectedIndex.value = -1;
+                }
               },
-        child: Stack(children: [
-          ...painters.value
-              .map((MyCustomPainter p) => CustomPaint(
-                    painter: p,
-                    size: size,
-                  ))
-              .toList(),
-          if (selectedIndex.value > -1)
-            CustomPaint(
-              painter: selectedRegion,
-              size: size,
-            ),
-        ]));
+        child: Container(
+            padding: padding,
+            child: Stack(children: [
+              ...painters.value
+                  .map((MyCustomPainter p) => CustomPaint(
+                        painter: p,
+                        size: size,
+                      ))
+                  .toList(),
+              if (selectedIndex.value > -1)
+                CustomPaint(
+                  painter: selectedRegion,
+                  size: size,
+                ),
+            ])));
   }
 }
 
