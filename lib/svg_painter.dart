@@ -41,19 +41,28 @@ class SvgPainter extends HookWidget {
     final ValueNotifier<List<MyCustomPainter>> painters =
         useState<List<MyCustomPainter>>([]);
     final ValueNotifier<int> selectedIndex = useState<int>(-1);
-    final scale = useState<double>(1);
+    final ValueNotifier<bool> isError = useState<bool>(false);
+    final ValueNotifier<double> scale = useState<double>(1);
 
     Future<void> _fetchSvg() async {
-      final Uint8List bytes = await httpGet(
-          'https://totalticketing-ets-mgm-prod2-singapore-web-files.s3.amazonaws.com/media/seatingtemplate/svg_three_d_drawing/34/mgm_gala_jan_0331_627pm_3d_final_rename100.svg',
-          headers: <String, String>{});
+      try {
+        final Uint8List bytes = await httpGet(
+            'https://totalticketing-ets-mgm-prod2-singapore-web-files.s3.amazonaws.com/media/seatingtemplate/svg_three_d_drawing/34/mgm_gala_jan_0331_627pm_3d_final_rename100.svg',
+            headers: <String, String>{});
 
-      final DrawableRoot svgRoot = await svg.fromSvgBytes(bytes, '');
-      root.value = svgRoot;
+        final DrawableRoot svgRoot = await svg.fromSvgBytes(bytes, '');
+        root.value = svgRoot;
+      } catch (_) {
+        isError.value = true;
+      }
     }
 
     Future<void> _parseSvg() async {
-      root.value = await svg.fromSvgString(svgString!, '');
+      try {
+        root.value = await svg.fromSvgString(svgString!, '');
+      } catch (_) {
+        isError.value = true;
+      }
     }
 
     useEffect(() {
@@ -103,6 +112,10 @@ class SvgPainter extends HookWidget {
         }
       });
     }, [root.value]);
+
+    if (isError.value) {
+      return const SizedBox();
+    }
 
     if (root.value == null) {
       return Container(
