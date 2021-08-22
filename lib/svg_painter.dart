@@ -11,19 +11,29 @@ import 'package:flutter/widgets.dart' show BuildContext, CustomPainter;
 import 'package:flutter/material.dart';
 
 class SvgPainter extends HookWidget {
-  final Size size;
+  final BuildContext context;
+  final double? height;
+  final double? width;
   final String? svgString;
   final String? svgUri;
   final Color? selectedColor;
   final EdgeInsetsGeometry? padding;
   final void Function(String, DrawableShape)? onTap;
+  late double targetWidth;
+  late double targetHeight;
 
-  SvgPainter(this.size,
-      {this.svgString,
+  SvgPainter(this.context,
+      {this.width,
+      this.height,
+      this.svgString,
       this.svgUri,
       this.onTap,
       this.padding,
-      this.selectedColor = Colors.red});
+      this.selectedColor = Colors.red})
+      : targetWidth = width ??
+            MediaQuery.of(context).size.width -
+                ((padding?.horizontal ?? 0) * 2),
+        targetHeight = (height ?? 200) - ((padding?.vertical ?? 0) * 2);
 
   @override
   Widget build(BuildContext context) {
@@ -58,8 +68,7 @@ class SvgPainter extends HookWidget {
       if (root.value == null) {
         return;
       }
-      double targetWidth = size.width - (padding?.horizontal ?? 0);
-      double targetHeight = size.height - (padding?.vertical ?? 0);
+
       double boundX = targetWidth;
       double boundY = targetHeight;
       root.value?.children.forEach((Drawable e) {
@@ -97,8 +106,8 @@ class SvgPainter extends HookWidget {
 
     if (root.value == null) {
       return Container(
-          width: size.width,
-          height: size.height,
+          width: width,
+          height: height,
           child: const Center(
             child: CircularProgressIndicator(),
           ));
@@ -147,20 +156,20 @@ class SvgPainter extends HookWidget {
                 }
               },
         child: Container(
-            padding: padding,
+            //padding: padding,
             child: Stack(children: [
-              ...painters.value
-                  .map((MyCustomPainter p) => CustomPaint(
-                        painter: p,
-                        size: size,
-                      ))
-                  .toList(),
-              if (selectedIndex.value > -1)
-                CustomPaint(
-                  painter: selectedRegion,
-                  size: size,
-                ),
-            ])));
+          ...painters.value
+              .map((MyCustomPainter p) => CustomPaint(
+                    painter: p,
+                    size: Size(targetWidth, targetHeight),
+                  ))
+              .toList(),
+          if (selectedIndex.value > -1)
+            CustomPaint(
+              painter: selectedRegion,
+              size: Size(targetWidth, targetHeight),
+            ),
+        ])));
   }
 }
 

@@ -30,9 +30,10 @@ class _MyHomePage extends HookWidget {
       ),
       body: Container(
           alignment: Alignment.center,
-          height: 500,
-          child: SvgPainter(Size(MediaQuery.of(context).size.width, 500),
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+          height: 400,
+          child: SvgPainter(context,
+              height: 400,
+              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
               svgUri:
                   'https://totalticketing-ets-mgm-prod2-singapore-web-files.s3.amazonaws.com/media/seatingtemplate/svg_three_d_drawing/34/mgm_gala_jan_0331_627pm_3d_final_rename100.svg',
               onTap: (String groupId, DrawableShape shape) {
