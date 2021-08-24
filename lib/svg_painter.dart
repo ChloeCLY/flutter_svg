@@ -21,6 +21,7 @@ class SvgPainter extends HookWidget {
   final void Function(String, DrawableShape)? onTap;
   late double targetWidth;
   late double targetHeight;
+  final ValueNotifier<int> selectedIndex;
 
   SvgPainter(this.context,
       {this.width,
@@ -29,7 +30,8 @@ class SvgPainter extends HookWidget {
       this.svgUri,
       this.onTap,
       this.padding,
-      this.selectedColor = Colors.red})
+      this.selectedColor = Colors.red,
+      required this.selectedIndex})
       : targetWidth = width ??
             MediaQuery.of(context).size.width -
                 ((padding?.horizontal ?? 0) * 2),
@@ -40,15 +42,19 @@ class SvgPainter extends HookWidget {
     final ValueNotifier<DrawableRoot?> root = useState<DrawableRoot?>(null);
     final ValueNotifier<List<MyCustomPainter>> painters =
         useState<List<MyCustomPainter>>([]);
-    final ValueNotifier<int> selectedIndex = useState<int>(-1);
+
     final ValueNotifier<bool> isError = useState<bool>(false);
     final ValueNotifier<double> scale = useState<double>(1);
+    final isMounted = useIsMounted();
 
     Future<void> _fetchSvg() async {
       try {
         final Uint8List bytes = await httpGet(
             'https://totalticketing-ets-mgm-prod2-singapore-web-files.s3.amazonaws.com/media/seatingtemplate/svg_three_d_drawing/34/mgm_gala_jan_0331_627pm_3d_final_rename100.svg',
             headers: <String, String>{});
+        if (!isMounted()) {
+          return;
+        }
 
         final DrawableRoot svgRoot = await svg.fromSvgBytes(bytes, '');
         root.value = svgRoot;

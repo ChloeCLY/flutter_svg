@@ -24,6 +24,8 @@ class _MyApp extends StatelessWidget {
 class _MyHomePage extends HookWidget {
   @override
   Widget build(BuildContext context) {
+    final selectedIndex = useState<int>(-1);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('test'),
@@ -34,6 +36,7 @@ class _MyHomePage extends HookWidget {
           child: SvgPainter(context,
               height: 400,
               padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+              selectedIndex: selectedIndex,
               svgUri:
                   'https://totalticketing-ets-mgm-prod2-singapore-web-files.s3.amazonaws.com/media/seatingtemplate/svg_three_d_drawing/34/mgm_gala_jan_0331_627pm_3d_final_rename100.svg',
               onTap: (String groupId, DrawableShape shape) {
