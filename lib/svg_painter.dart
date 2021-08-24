@@ -22,6 +22,7 @@ class SvgPainter extends HookWidget {
   late double targetWidth;
   late double targetHeight;
   final ValueNotifier<int>? selectedIndex;
+  final List<String>? activeSvgId;
 
   SvgPainter(this.context,
       {this.width,
@@ -31,7 +32,8 @@ class SvgPainter extends HookWidget {
       this.onTap,
       this.padding,
       this.selectedColor = Colors.red,
-      this.selectedIndex})
+      this.selectedIndex,
+      this.activeSvgId})
       : targetWidth = width ??
             MediaQuery.of(context).size.width -
                 ((padding?.horizontal ?? 0) * 2),
@@ -109,7 +111,14 @@ class SvgPainter extends HookWidget {
           count += e.children!.length;
           e.children!.forEach((Drawable s) {
             if (s is DrawableShape) {
-              final ui.Color color = s.style.fill?.color ?? Colors.black;
+              ui.Color color = s.style.fill?.color ?? Colors.black;
+              if (activeSvgId != null) {
+                if (!activeSvgId!.contains(e.id)) {
+                  color = s.id != null && s.id!.startsWith('side')
+                      ? const Color(0xffa3a3a3)
+                      : const Color(0xffb2b2b2);
+                }
+              }
               painters.value.add(
                 MyCustomPainter(count, e.id, s, scale.value, color),
               );
@@ -158,6 +167,11 @@ class SvgPainter extends HookWidget {
                 for (int i = 0; i < painters.value.length; i++) {
                   if (painters.value[i].hitTest(details.localPosition) &&
                       painters.value[i].index > 0) {
+                    if (activeSvgId != null) {
+                      if (!activeSvgId!.contains(painters.value[i].groupId)) {
+                        break;
+                      }
+                    }
                     isHit = true;
                     if (painters.value[i].groupId == 'GRAPHIC') {
                       selectedIndex?.value = -1;

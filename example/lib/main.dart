@@ -39,6 +39,9 @@ class _MyHomePage extends HookWidget {
               selectedIndex: selectedIndex,
               svgUri:
                   'https://totalticketing-ets-mgm-prod2-singapore-web-files.s3.amazonaws.com/media/seatingtemplate/svg_three_d_drawing/34/mgm_gala_jan_0331_627pm_3d_final_rename100.svg',
+              //activeSvgId: [
+              //  'SECTION-302'
+              //],
               onTap: (String groupId, DrawableShape shape) {
             print(groupId);
             print(shape.id);
