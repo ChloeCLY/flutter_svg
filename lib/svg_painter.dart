@@ -21,7 +21,7 @@ class SvgPainter extends HookWidget {
   final void Function(String, DrawableShape)? onTap;
   late double targetWidth;
   late double targetHeight;
-  final ValueNotifier<int> selectedIndex;
+  final ValueNotifier<int>? selectedIndex;
 
   SvgPainter(this.context,
       {this.width,
@@ -31,7 +31,7 @@ class SvgPainter extends HookWidget {
       this.onTap,
       this.padding,
       this.selectedColor = Colors.red,
-      required this.selectedIndex})
+      this.selectedIndex})
       : targetWidth = width ??
             MediaQuery.of(context).size.width -
                 ((padding?.horizontal ?? 0) * 2),
@@ -133,18 +133,21 @@ class SvgPainter extends HookWidget {
     }
 
     final MyCustomPainter? currentSelected =
-        selectedIndex.value > -1 ? painters.value[selectedIndex.value] : null;
+        selectedIndex != null && selectedIndex!.value > -1
+            ? painters.value[selectedIndex!.value]
+            : null;
 
-    final MyCustomPainter? selectedRegion = selectedIndex.value > -1
-        ? MyCustomPainter(
-            -1,
-            currentSelected!.groupId,
-            currentSelected.drawable,
-            scale.value,
-            selectedColor!,
-            isSelected: true,
-          )
-        : null;
+    final MyCustomPainter? selectedRegion =
+        selectedIndex != null && selectedIndex!.value > -1
+            ? MyCustomPainter(
+                -1,
+                currentSelected!.groupId,
+                currentSelected.drawable,
+                scale.value,
+                selectedColor!,
+                isSelected: true,
+              )
+            : null;
 
     return GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -157,13 +160,13 @@ class SvgPainter extends HookWidget {
                       painters.value[i].index > 0) {
                     isHit = true;
                     if (painters.value[i].groupId == 'GRAPHIC') {
-                      selectedIndex.value = -1;
+                      selectedIndex?.value = -1;
                       break;
                     }
-                    if (selectedIndex.value != painters.value[i].index) {
-                      selectedIndex.value = painters.value[i].index;
+                    if (selectedIndex?.value != painters.value[i].index) {
+                      selectedIndex?.value = painters.value[i].index;
                     } else {
-                      selectedIndex.value = -1;
+                      selectedIndex?.value = -1;
                     }
                     onTap?.call(painters.value[i].groupId ?? '',
                         painters.value[i].drawable);
@@ -171,7 +174,7 @@ class SvgPainter extends HookWidget {
                   }
                 }
                 if (!isHit) {
-                  selectedIndex.value = -1;
+                  selectedIndex?.value = -1;
                 }
               },
         child: Container(
@@ -183,7 +186,7 @@ class SvgPainter extends HookWidget {
                     size: Size(targetWidth, targetHeight),
                   ))
               .toList(),
-          if (selectedIndex.value > -1)
+          if (selectedIndex != null && selectedIndex!.value > -1)
             CustomPaint(
               painter: selectedRegion,
               size: Size(targetWidth, targetHeight),
