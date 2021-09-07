@@ -74,7 +74,7 @@ class SvgPainter extends HookWidget {
 
     useEffect(() {
       if (svgUri != null && svgUri!.isNotEmpty) {
-        _fetchSvg(svgUri);
+        _fetchSvg(svgUri!);
       } else if (svgString != null && svgString!.isNotEmpty) {
         _parseSvg();
       }
