@@ -49,11 +49,10 @@ class SvgPainter extends HookWidget {
     final ValueNotifier<double> scale = useState<double>(1);
     final isMounted = useIsMounted();
 
-    Future<void> _fetchSvg() async {
+    Future<void> _fetchSvg(String svgUri) async {
       try {
-        final Uint8List bytes = await httpGet(
-            'https://totalticketing-ets-mgm-prod2-singapore-web-files.s3.amazonaws.com/media/seatingtemplate/svg_three_d_drawing/34/mgm_gala_jan_0331_627pm_3d_final_rename100.svg',
-            headers: <String, String>{});
+        final Uint8List bytes =
+            await httpGet(svgUri, headers: <String, String>{});
         if (!isMounted()) {
           return;
         }
@@ -75,7 +74,7 @@ class SvgPainter extends HookWidget {
 
     useEffect(() {
       if (svgUri != null && svgUri!.isNotEmpty) {
-        _fetchSvg();
+        _fetchSvg(svgUri);
       } else if (svgString != null && svgString!.isNotEmpty) {
         _parseSvg();
       }
