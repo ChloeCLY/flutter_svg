@@ -21,7 +21,7 @@ class SvgPainter extends HookWidget {
   final void Function(String, DrawableShape)? onTap;
   late double targetWidth;
   late double targetHeight;
-  final ValueNotifier<int>? selectedIndex;
+  final ValueNotifier<String>? selectedIndex;
   final List<String>? activeSvgId;
 
   SvgPainter(this.context,
@@ -81,25 +81,55 @@ class SvgPainter extends HookWidget {
     }, []);
 
     useEffect(() {
+      Size getBound(Drawable s, Size bound) {
+        if (s is DrawableShape) {
+          final double boundX = max(bound.width, s.path.getBounds().right);
+          final double boundY = max(bound.height, s.path.getBounds().bottom);
+          bound = Size(boundX, boundY);
+        } else if (s is DrawableGroup) {
+          s.children!.forEach((Drawable e) {
+            bound = getBound(e, bound);
+          });
+        }
+        return bound;
+      }
+
+      void addShape(Drawable s, String gid) {
+        if (s is DrawableShape) {
+          ui.Color color = s.style.fill?.color ?? Colors.black;
+          if (activeSvgId != null) {
+            if (!activeSvgId!.contains(gid)) {
+              color = s.id != null && s.id!.startsWith('side')
+                  ? const Color(0xffa3a3a3)
+                  : const Color(0xffb2b2b2);
+            }
+          }
+          painters.value.add(
+            MyCustomPainter(gid, s, scale.value, color),
+          );
+        } else if (s is DrawableGroup) {
+          //count += s.children!.length;
+          s.children!.forEach((Drawable e) {
+            addShape(e, gid);
+          });
+        }
+      }
+
       if (root.value == null) {
         return;
       }
 
-      double boundX = targetWidth;
-      double boundY = targetHeight;
+      var bound = Size(targetWidth, targetHeight);
       root.value?.children.forEach((Drawable e) {
         if (e is DrawableGroup && e.children != null) {
           e.children!.forEach((Drawable s) {
-            if (s is DrawableShape) {
-              boundX = max(boundX, s.path.getBounds().right);
-              boundY = max(boundY, s.path.getBounds().bottom);
-            }
+            bound = getBound(s, bound);
           });
         }
       });
 
-      final double scaleX = targetWidth / boundX;
-      final double scaleY = targetHeight / boundY;
+      final double scaleX = targetWidth / bound.width;
+      final double scaleY = targetHeight / bound.height;
 
       scale.value = min(scaleX, scaleY);
 
@@ -109,19 +139,7 @@ class SvgPainter extends HookWidget {
         if (e is DrawableGroup && e.children != null) {
           count += e.children!.length;
           e.children!.forEach((Drawable s) {
-            if (s is DrawableShape) {
-              ui.Color color = s.style.fill?.color ?? Colors.black;
-              if (activeSvgId != null) {
-                if (!activeSvgId!.contains(e.id)) {
-                  color = s.id != null && s.id!.startsWith('side')
-                      ? const Color(0xffa3a3a3)
-                      : const Color(0xffb2b2b2);
-                }
-              }
-              painters.value.add(
-                MyCustomPainter(count, e.id, s, scale.value, color),
-              );
-            }
+            addShape(s, e.id ?? '');
           });
         }
       });
@@ -141,14 +159,18 @@ class SvgPainter extends HookWidget {
     }
 
     final MyCustomPainter? currentSelected =
-        selectedIndex != null && selectedIndex!.value > -1
-            ? painters.value[selectedIndex!.value]
+        selectedIndex != null && selectedIndex!.value != ''
+            ? painters.value
+                .where((e) =>
+                    e.groupId == selectedIndex!.value &&
+                    e.drawable.id != null &&
+                    e.drawable.id!.startsWith('top'))
+                .first
             : null;
 
     final MyCustomPainter? selectedRegion =
-        selectedIndex != null && selectedIndex!.value > -1
+        selectedIndex != null && selectedIndex!.value != ''
             ? MyCustomPainter(
-                -1,
                 currentSelected!.groupId,
                 currentSelected.drawable,
                 scale.value,
@@ -165,21 +187,19 @@ class SvgPainter extends HookWidget {
                 bool isHit = false;
                 for (int i = 0; i < painters.value.length; i++) {
                   if (painters.value[i].hitTest(details.localPosition) &&
-                      painters.value[i].index > 0) {
+                      //painters.value[i].index > 0 &&
+                      painters.value[i].groupId != 'GRAPHIC') {
                     if (activeSvgId != null) {
                       if (!activeSvgId!.contains(painters.value[i].groupId)) {
                         break;
                       }
                     }
                     isHit = true;
-                    if (painters.value[i].groupId == 'GRAPHIC') {
-                      selectedIndex?.value = -1;
-                      break;
-                    }
-                    if (selectedIndex?.value != painters.value[i].index) {
-                      selectedIndex?.value = painters.value[i].index;
+
+                    if (selectedIndex?.value != painters.value[i].groupId) {
+                      selectedIndex?.value = painters.value[i].groupId ?? '';
                     } else {
-                      selectedIndex?.value = -1;
+                      selectedIndex?.value = '';
                     }
                     onTap?.call(painters.value[i].groupId ?? '',
                         painters.value[i].drawable);
@@ -187,7 +207,7 @@ class SvgPainter extends HookWidget {
                   }
                 }
                 if (!isHit) {
-                  selectedIndex?.value = -1;
+                  selectedIndex?.value = '';
                 }
               },
         child: Container(
@@ -199,7 +219,7 @@ class SvgPainter extends HookWidget {
                     size: Size(targetWidth, targetHeight),
                   ))
               .toList(),
-          if (selectedIndex != null && selectedIndex!.value > -1)
+          if (selectedIndex != null && selectedIndex!.value != '')
             CustomPaint(
               painter: selectedRegion,
               size: Size(targetWidth, targetHeight),
@@ -209,7 +229,6 @@ class SvgPainter extends HookWidget {
 }
 
 class MyCustomPainter extends CustomPainter {
-  final int index;
   final String? groupId;
   final DrawableShape drawable;
   final double scale;
@@ -217,8 +236,7 @@ class MyCustomPainter extends CustomPainter {
   final Paint myPaint = Paint();
   final bool isSelected;
 
-  MyCustomPainter(
-      this.index, this.groupId, this.drawable, this.scale, this.color,
+  MyCustomPainter(this.groupId, this.drawable, this.scale, this.color,
       {this.isSelected = false});
 
   late Path path;

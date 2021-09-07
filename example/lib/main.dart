@@ -24,7 +24,7 @@ class _MyApp extends StatelessWidget {
 class _MyHomePage extends HookWidget {
   @override
   Widget build(BuildContext context) {
-    final selectedIndex = useState<int>(-1);
+    final selectedIndex = useState<String>('');
 
     return Scaffold(
       appBar: AppBar(
@@ -39,6 +39,7 @@ class _MyHomePage extends HookWidget {
               selectedIndex: selectedIndex,
               svgUri:
                   'https://totalticketing-ets-mgm-prod2-singapore-web-files.s3.amazonaws.com/media/seatingtemplate/svg_three_d_drawing/34/mgm_gala_jan_0331_627pm_3d_final_rename100.svg',
+              //'https://sunod.qwerasdf.gq/gpi/v1/media/seatingtemplate/svg_three_d_drawing/36/3d_svg_34KV2A1.svg',
               //activeSvgId: [
               //  'SECTION-302'
               //],
