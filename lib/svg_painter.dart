@@ -97,11 +97,11 @@ class SvgPainter extends HookWidget {
       void addShape(Drawable s, String gid) {
         if (s is DrawableShape) {
           ui.Color color = s.style.fill?.color ?? Colors.black;
-          if (activeSvgId != null) {
+          if (activeSvgId != null && gid != 'GRAPHIC') {
             if (!activeSvgId!.contains(gid)) {
               color = s.id != null && s.id!.startsWith('side')
-                  ? const Color(0xffa3a3a3)
-                  : const Color(0xffb2b2b2);
+                  ? const Color(0xff969696)
+                  : const Color(0xffbdbdbd);
             }
           }
           painters.value.add(
