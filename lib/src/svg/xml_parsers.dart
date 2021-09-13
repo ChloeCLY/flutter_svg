@@ -463,6 +463,7 @@ DrawableStyle parseStyle(
   Rect? bounds,
   DrawableStyle? parentStyle, {
   Color? defaultFillColor,
+  String? styles,
 }) {
   return DrawableStyle.mergeAndBlend(
     parentStyle,
@@ -517,5 +518,6 @@ DrawableStyle parseStyle(
       ),
     ),
     blendMode: _blendModes[getAttribute(attributes, 'mix-blend-mode')!],
+    styles: styles,
   );
 }

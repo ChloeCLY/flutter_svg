@@ -38,11 +38,10 @@ class _MyHomePage extends HookWidget {
               padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
               selectedIndex: selectedIndex,
               svgUri:
-                  'https://totalticketing-ets-mgm-prod2-singapore-web-files.s3.amazonaws.com/media/seatingtemplate/svg_three_d_drawing/34/mgm_gala_jan_0331_627pm_3d_final_rename100.svg',
-              //'https://sunod.qwerasdf.gq/gpi/v1/media/seatingtemplate/svg_three_d_drawing/36/3d_svg_34KV2A1.svg',
-              //activeSvgId: [
-              //  'SECTION-302'
-              //],
+                  //'https://totalticketing-ets-mgm-prod2-singapore-web-files.s3.amazonaws.com/media/seatingtemplate/svg_three_d_drawing/34/mgm_gala_jan_0331_627pm_3d_final_rename100.svg',
+                  //'https://sunod.qwerasdf.gq/gpi/v1/media/seatingtemplate/svg_three_d_drawing/36/3d_svg_34KV2A1.svg',
+                  'https://totalticketing-ets-sun-staging-singapore-web-files.s3.amazonaws.com/media/seatingtemplate/svg_three_d_drawing/42/McPherson0910_v8_3D.svg',
+              //activeSvgId: ['SECTION-PURPLE'],
               onTap: (String groupId, DrawableShape shape) {
             print(groupId);
             print(shape.id);

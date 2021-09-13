@@ -792,10 +792,11 @@ class SvgParserState {
           styleValues.forEach((e) {
             if (e.isEmpty) return;
             final v = e.trim();
-            styles[v.substring(1, v.indexOf('{'))] =
-                v.substring(v.indexOf('#') + 1, v.indexOf(';', v.indexOf('#')));
+            styles[v.substring(1, v.indexOf('{'))] = v;
           });
-        } catch (_) {}
+        } catch (err) {
+          //print(err);
+        }
       }
 
       if (depth < subtreeStartDepth) {
@@ -931,9 +932,16 @@ class SvgParserState {
     Color? color;
     try {
       if (styles[className] != null) {
-        color = Color(int.parse(styles[className]!, radix: 16));
+        final String fillColor = styles[className]!.substring(
+            styles[className]!.indexOf('fill:#') + 6,
+            styles[className]!.indexOf(';', styles[className]!.indexOf('#')));
+        color = Color(int.parse(fillColor, radix: 16));
       }
-    } catch (_) {}
+    } catch (err) {
+      //color = const Color(0xFFE6E7E8);
+      //color = const Color(0xFFFFFFFF);
+      //print(err);
+    }
 
     final DrawableParent parent = _parentDrawables.last.drawable!;
     final DrawableStyle? parentStyle = parent.style;
@@ -947,7 +955,8 @@ class SvgParserState {
         _definitions,
         path.getBounds(),
         parentStyle,
-        defaultFillColor: color ?? colorBlack,
+        defaultFillColor: color,
+        styles: styles[className],
       ),
       transform: parseTransform(getAttribute(attributes, 'transform'))?.storage,
     );

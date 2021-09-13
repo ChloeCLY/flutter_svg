@@ -74,6 +74,7 @@ class DrawableStyle {
     this.clipPath,
     this.mask,
     this.blendMode,
+    this.styles,
   });
 
   /// Used where 'dasharray' is 'none'
@@ -118,6 +119,8 @@ class DrawableStyle {
   /// Setting this will result in at least one [Canvas.saveLayer] call.
   final BlendMode? blendMode;
 
+  final String? styles;
+
   /// Creates a new [DrawableStyle] if `parent` is not null, filling in any null
   /// properties on this with the properties from other (except [groupOpacity],
   /// is not inherited).
@@ -133,6 +136,7 @@ class DrawableStyle {
     List<Path>? clipPath,
     DrawableStyleable? mask,
     BlendMode? blendMode,
+    String? styles,
   }) {
     return DrawableStyle(
       fill: DrawablePaint.merge(fill, parent?.fill),
@@ -147,6 +151,7 @@ class DrawableStyle {
       clipPath: clipPath,
       mask: mask,
       blendMode: blendMode,
+      styles: styles,
     );
   }
 
@@ -314,7 +319,6 @@ class DrawablePaint {
     if (style != null) {
       paint.style = style!;
     }
-
     return paint;
   }
 

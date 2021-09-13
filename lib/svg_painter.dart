@@ -95,19 +95,14 @@ class SvgPainter extends HookWidget {
       }
 
       void addShape(Drawable s, String gid) {
+        //print('$gid  ${s.id}');
         if (s is DrawableShape) {
-          ui.Color color = s.style.fill?.color ?? Colors.black;
-          if (activeSvgId != null && gid != 'GRAPHIC') {
-            if (!activeSvgId!.contains(gid)) {
-              color = s.id != null && s.id!.startsWith('side')
-                  ? const Color(0xff969696)
-                  : const Color(0xffbdbdbd);
-            }
-          }
+          //print('is DrawableShape $gid');
           painters.value.add(
-            MyCustomPainter(gid, s, scale.value, color),
+            MyCustomPainter(gid, s, scale.value, activeSvgId),
           );
         } else if (s is DrawableGroup) {
+          //print('is DrawableGroup $gid');
           //count += s.children!.length;
           s.children!.forEach((Drawable e) {
             addShape(e, gid);
@@ -134,10 +129,9 @@ class SvgPainter extends HookWidget {
       scale.value = min(scaleX, scaleY);
 
       painters.value.clear();
-      int count = -1;
+
       root.value!.children.forEach((Drawable e) {
         if (e is DrawableGroup && e.children != null) {
-          count += e.children!.length;
           e.children!.forEach((Drawable s) {
             addShape(s, e.id ?? '');
           });
@@ -174,7 +168,7 @@ class SvgPainter extends HookWidget {
                 currentSelected!.groupId,
                 currentSelected.drawable,
                 scale.value,
-                selectedColor!,
+                activeSvgId,
                 isSelected: true,
               )
             : null;
@@ -213,12 +207,12 @@ class SvgPainter extends HookWidget {
         child: Container(
             //padding: padding,
             child: Stack(children: [
-          ...painters.value
-              .map((MyCustomPainter p) => CustomPaint(
-                    painter: p,
-                    size: Size(targetWidth, targetHeight),
-                  ))
-              .toList(),
+          ...painters.value.map((MyCustomPainter p) {
+            return CustomPaint(
+              painter: p,
+              size: Size(targetWidth, targetHeight),
+            );
+          }).toList(),
           if (selectedIndex != null && selectedIndex!.value != '')
             CustomPaint(
               painter: selectedRegion,
@@ -232,14 +226,32 @@ class MyCustomPainter extends CustomPainter {
   final String? groupId;
   final DrawableShape drawable;
   final double scale;
-  final Color color;
-  final Paint myPaint = Paint();
+  //final Color color;
+  final List<String>? activeSvgId;
+  final Paint fillPaint = Paint();
+  final Paint strokePaint = Paint();
+
   final bool isSelected;
 
-  MyCustomPainter(this.groupId, this.drawable, this.scale, this.color,
+  MyCustomPainter(this.groupId, this.drawable, this.scale, this.activeSvgId,
       {this.isSelected = false});
 
   late Path path;
+
+  String? getStyle(String style, String name) {
+    if (!style.contains(name)) {
+      return null;
+    }
+    int startIdx = style.indexOf(name) + name.length + 1;
+    if (startIdx == -1) {
+      return null;
+    }
+    int endIndx = style.indexOf(';', startIdx);
+    if (startIdx == -1) {
+      return null;
+    }
+    return style.substring(startIdx, endIndx);
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -247,12 +259,66 @@ class MyCustomPainter extends CustomPainter {
     matrix4.scale(scale, scale);
     path = drawable.path.transform(matrix4.storage);
 
-    myPaint.color = color;
+    ui.Color? color;
     if (isSelected) {
-      myPaint.style = PaintingStyle.stroke;
-      myPaint.strokeWidth = 2;
+      color = Colors.red;
+    } else {
+      color = drawable.style.fill?.color;
+      if (activeSvgId != null && groupId != 'GRAPHIC') {
+        if (!activeSvgId!.contains(groupId)) {
+          color = drawable.id != null && drawable.id!.startsWith('side')
+              ? const Color(0xff969696)
+              : const Color(0xffbdbdbd);
+        }
+      }
     }
-    canvas.drawPath(path, myPaint);
+
+    if (isSelected) {
+      fillPaint.color = Colors.red;
+      fillPaint.style = PaintingStyle.stroke;
+      fillPaint.strokeWidth = 2;
+      canvas.drawPath(path, fillPaint);
+      return;
+    }
+
+    String? style = drawable.style.styles;
+    if (style != null) {
+      if (style.contains('stroke')) {
+        try {
+          String? strokeWidth = getStyle(style, 'stroke-width');
+          if (strokeWidth != null) {
+            strokePaint.strokeWidth = double.parse(strokeWidth);
+          }
+        } catch (_) {}
+
+        try {
+          String? strokeMiterLimit = getStyle(style, 'stroke-miterlimit');
+          if (strokeMiterLimit != null) {
+            strokePaint.strokeMiterLimit = double.parse(strokeMiterLimit);
+          }
+        } catch (_) {}
+
+        try {
+          String? strokeColor = getStyle(style, 'stroke');
+          if (strokeColor != null) {
+            int color = int.parse(strokeColor.substring(1), radix: 16);
+
+            if (strokeColor.length == 7) {
+              strokePaint.color = Color(color |= 0xFF000000);
+            }
+          }
+        } catch (_) {}
+
+        strokePaint.style = PaintingStyle.stroke;
+        canvas.drawPath(path, strokePaint);
+      }
+    }
+
+    if (color != null) {
+      fillPaint.color = color;
+      fillPaint.style = PaintingStyle.fill;
+      canvas.drawPath(path, fillPaint);
+    }
   }
 
   @override
